@@ -4,7 +4,7 @@
 #include "glm/glm.hpp"
 #include "ShaderProgram.h"
 #include "Map.h"
-enum EntityType { PLATFORM, PLAYER, ENEMY  };
+enum EntityType { PLATFORM, PLAYER, ENEMY, FIREBALL  };
 enum AIType     { WALKER, GUARD, JUMPER  };
 enum AIState    { JUMPING, IDLE, ATTACKING };
 
@@ -64,6 +64,9 @@ private:
     bool m_collided_left   = false;
     bool m_collided_right  = false;
 
+    // for fireball
+    bool m_shooting;
+
 public:
     // ————— STATIC VARIABLES ————— //
     static constexpr int SECONDS_PER_FRAME = 12;
@@ -81,7 +84,7 @@ public:
     bool const check_collision(Entity* other) const;
     
     void const check_collision_y(Entity* collidable_entities, int collidable_entity_count);
-    void const check_collision_x(Entity* collidable_entities, int collidable_entity_count);
+    void const check_collision_x(Entity* collidable_entities, int collidable_entity_count, Entity* player);
 
     //OVERLOADED
     void const check_collision_y(Map* map);
@@ -101,6 +104,8 @@ public:
     void face_right() { m_animation_indices = m_walking[RIGHT]; }
     void face_up() { m_animation_indices = m_walking[UP]; }
     void face_down() { m_animation_indices = m_walking[DOWN]; }
+
+    void fireball() { m_shooting = true; }
 
     void move_left() { m_movement.x = -1.0f; if (!m_collided_bottom) jump_left(); else  face_left(); }
     void move_right() { m_movement.x = 1.0f; if (!m_collided_bottom) jump_right(); else face_right(); }
@@ -136,6 +141,8 @@ public:
 
     int       const get_kill_count() const { return kill_count; }
     bool      const get_touched() const { return m_touched_enemy; }
+
+    bool      const get_shooting() const { return m_shooting; }
     
     void activate()   { m_is_active = true;  };
     void deactivate() { m_is_active = false; };
@@ -161,6 +168,8 @@ public:
 
     void const set_kill_count(int new_kill_count) { kill_count = new_kill_count; }
     void const set_touched() { m_touched_enemy = true; }
+
+    void const set_shooting() { m_shooting = false;  }
 
     // Setter for m_walking
     void set_walking(int walking[3][4])

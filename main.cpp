@@ -39,7 +39,7 @@ struct GameState
     Entity* player;
     //std::vector<Entity> enemies;
     Entity* enemies;
-
+    Entity* fireball;
 
     Map* map;
 };
@@ -317,6 +317,7 @@ void initialise()
     GLuint goomba_texture_id = load_texture("assets/goomba.png");
     GLuint shell_texture_id = load_texture("assets/shell.png");
     GLuint koopa_texture_id = load_texture("assets/koopa.png");
+    GLuint fireball_texture_id = load_texture("assets/fireball.png");
 
 
     g_state.enemies = new Entity[num_enemies]{
@@ -372,6 +373,16 @@ void initialise()
     g_state.enemies[2].set_acceleration(glm::vec3(0.0f, -15.0f, 0.0f));
 
 
+    // ----- FIREBALL ----- //
+
+    g_state.fireball = new Entity(
+        fireball_texture_id,        // texture id
+        5.0f,                       // speed
+        0.75f,                      // width
+        0.75f,                      // height
+        FIREBALL                   // entity type
+    );
+
     // ––––– GENERAL ––––– //
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -380,6 +391,8 @@ void initialise()
 void process_input()
 {
     g_state.player->set_movement(glm::vec3(0.0f));
+
+    GLuint fireball_texture_id = load_texture("assets/fireball.png");
 
 
     const Uint8* key_state = SDL_GetKeyboardState(NULL);
@@ -441,6 +454,26 @@ void process_input()
         return;
     }
 
+    if (key_state[SDL_SCANCODE_C]) {
+
+        g_state.fireball = new Entity(
+            fireball_texture_id,        // texture id
+            5.0f,                       // speed
+            0.75f,                      // width
+            0.75f,                      // height
+            FIREBALL                   // entity type
+        );
+        g_state.fireball->set_position(glm::vec3(g_state.player->get_position().x, g_state.player->get_position().y, 0.0f));
+
+        if (left_movement) {
+            g_state.fireball->set_movement(glm::vec3(-1.0f, 0.0f, 0.0f));
+        }
+        else if (right_movement) {
+            g_state.fireball->set_movement(glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+    }
+
     if (key_state[SDL_SCANCODE_LEFT]) {
         g_state.player->move_left();
         right_movement = false;
@@ -486,37 +519,25 @@ void update()
         g_state.player->update(FIXED_TIMESTEP, g_state.player, g_state.enemies, 3, g_state.map);
 
         for (int i = 0; i < 3; i++) {
-            //if (!g_state.enemies[i].get_is_active()) {
-            //    delete &g_state.enemies[i];
-            //}
-            //else {
-                g_state.enemies[i].update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
-            //}
+
+            g_state.enemies[i].update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
+           
            
         }
 
+        if (g_state.fireball->get_is_active()) {
+            g_state.fireball->update(delta_time, g_state.player, g_state.enemies, 3, g_state.map);
+        }
 
-        //g_state.goomba->update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
-
-        //g_state.shell->update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
-
-        //g_state.koopa->update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
 
         delta_time -= FIXED_TIMESTEP;
     }
 
 
-    // CAMERA FOLLOWING PLAYER
-    //g_view_matrix = glm::mat4(1.0f);
-    //g_view_matrix = glm::translate(g_view_matrix, glm::vec3(-g_state.player->get_position().x, 0.0f, 0.0f));
-
     g_view_matrix = glm::mat4(1.0f);
 
     //// Camera Follows the player
     g_view_matrix = glm::translate(g_view_matrix, glm::vec3(-g_state.player->get_position().x, -g_state.player->get_position().y, 0.0f));
-
-
-    //if player colliding with platform to deact: platforms[platformtodeact].deactivate()
 
 
     g_accumulator = delta_time;
@@ -528,8 +549,10 @@ void render()
 
     g_program.set_view_matrix(g_view_matrix);
 
+    draw_text(&g_program, g_font_texture_id, "Press C to Fireball", 0.25f, 0.01f,
+        glm::vec3(2.5f, -6.5f, 0.0f));
 
-    if (g_state.player->get_kill_count() == 3) {
+    if (g_state.player->get_kill_count() == 3 || g_state.fireball->get_kill_count() == 3) {
         draw_text(&g_program, g_font_texture_id, "YOU WIN!", 0.5f, 0.05f,
             glm::vec3(g_state.player->get_position().x - 2.0f, g_state.player->get_position().y + 2.0f, 0.0f));
     }
@@ -544,23 +567,11 @@ void render()
         g_state.enemies[i].render(&g_program);
     }
 
-
-    //g_state.goomba->render(&g_program);
-
-    //g_state.shell->render(&g_program);
-
-    //g_state.koopa->render(&g_program);
+    if (g_state.fireball->get_is_active()) {
+        g_state.fireball->render(&g_program);
+    }
 
     g_state.map->render(&g_program);
-
-    //for (int i = 0; i < PLATFORM_COUNT; i++) {
-    //    //if (g_state.platforms[i].get_entity_type() != DISAPPEARING)
-    //        g_state.platforms[i].render(&g_program);
-    //}
-
-    //for (int i = 0; i < g_state.enemy_count; i++) {
-    //    g_state.enemies[i].render(&g_program);
-    //}
 
     SDL_GL_SwapWindow(g_display_window);
 }
@@ -571,6 +582,8 @@ void shutdown()
     
     delete g_state.enemies;
     delete g_state.player;
+    delete g_state.fireball;
+    delete g_state.map;
 }
 
 // ––––– GAME LOOP ––––– //

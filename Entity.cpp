@@ -138,8 +138,8 @@ Entity::Entity(GLuint texture_id, float speed,  float width, float height, Entit
     m_texture_id(texture_id), m_velocity(0.0f), m_acceleration(0.0f), m_width(width), m_height(height),m_entity_type(EntityType)
 {
     // Initialize m_walking with zeros or any default value
-    for (int i = 0; i < SECONDS_PER_FRAME; ++i)
-        for (int j = 0; j < SECONDS_PER_FRAME; ++j) m_walking[i][j] = 0;
+    //for (int i = 0; i < SECONDS_PER_FRAME; ++i)
+    //    for (int j = 0; j < SECONDS_PER_FRAME; ++j) m_walking[i][j] = 0;
 
     OutputDebugString(L"PARTIAL SIMPLE CONSTRUCTOR\n");
 }
@@ -293,7 +293,7 @@ void const Entity::check_collision_y(Entity *collidable_entities, int collidable
     }
 }
 
-void const Entity::check_collision_x(Entity *collidable_entities, int collidable_entity_count)
+void const Entity::check_collision_x(Entity *collidable_entities, int collidable_entity_count, Entity* player)
 {
     for (int i = 0; i < collidable_entity_count; i++)
     {
@@ -324,7 +324,15 @@ void const Entity::check_collision_x(Entity *collidable_entities, int collidable
                 m_collided_left  = true;
             }
             if (m_collided_right || m_collided_left) {
-                set_touched();
+                if (m_entity_type == FIREBALL) {
+                    this->deactivate();
+                    collidable_entity->deactivate();
+                    player->set_kill_count(player->get_kill_count() + 1);
+                }
+                else {
+                    set_touched();
+                }
+                
             }
         }
     }
@@ -404,12 +412,19 @@ void const Entity::check_collision_x(Map* map)
         m_position.x += penetration_x;
         m_velocity.x = 0;
         m_collided_left = true;
+        if (m_entity_type == FIREBALL) {
+            this->deactivate();
+        }
+        
     }
     if (map->is_solid(right, &penetration_x, &penetration_y) && m_velocity.x > 0)
     {
         m_position.x -= penetration_x;
         m_velocity.x = 0;
         m_collided_right = true;
+        if (m_entity_type == FIREBALL) {
+            this->deactivate();
+        }
     }
 }
 
@@ -431,6 +446,12 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
     
     if (m_entity_type == ENEMY) {
         ai_activate(player);
+    }
+
+    if (m_entity_type == FIREBALL) {
+        if (!m_is_active) {
+            return;
+        }
     }
 
     //if (m_entity_type == PLAYER) {
@@ -474,13 +495,18 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
     check_collision_y(map);
     
     m_position.x += m_velocity.x * delta_time;
-    check_collision_x(collidable_entities, collidable_entity_count);
+    check_collision_x(collidable_entities, collidable_entity_count, player);
     check_collision_x(map);
     
     if (m_is_jumping && m_collided_bottom)
     {
         m_is_jumping = false;
         m_velocity.y += m_jumping_power;
+    }
+
+    if (m_shooting) {
+        m_shooting = false;
+
     }
     
     m_model_matrix = glm::mat4(1.0f);
