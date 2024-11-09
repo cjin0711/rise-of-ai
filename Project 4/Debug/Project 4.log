@@ -1,10 +1,6 @@
 ﻿  main.cpp
-C:\Users\cjin0\source\repos\Project 4\main.cpp(40,30): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\cjin0\source\repos\Project 4\main.cpp(41,30): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\cjin0\source\repos\Project 4\main.cpp(125,15): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-C:\Users\cjin0\source\repos\Project 4\main.cpp(167,36): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
-  Map.cpp
-C:\Users\cjin0\source\repos\Project 4\Map.cpp(94,16): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-C:\Users\cjin0\source\repos\Project 4\Map.cpp(95,16): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-  Generating Code...
+C:\Users\cjin0\source\repos\Project 4\main.cpp(47,30): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\cjin0\source\repos\Project 4\main.cpp(48,30): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\cjin0\source\repos\Project 4\main.cpp(148,15): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\cjin0\source\repos\Project 4\main.cpp(190,36): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
   Project 4.vcxproj -> C:\Users\cjin0\source\repos\Project 4\Debug\Project 4.exe

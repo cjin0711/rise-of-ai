@@ -3,9 +3,10 @@
 
 #include "glm/glm.hpp"
 #include "ShaderProgram.h"
+#include "Map.h"
 enum EntityType { PLATFORM, PLAYER, ENEMY  };
-enum AIType     { WALKER, GUARD            };
-enum AIState    { WALKING, IDLE, ATTACKING };
+enum AIType     { WALKER, GUARD, JUMPER  };
+enum AIState    { JUMPING, IDLE, ATTACKING };
 
 
 enum AnimationDirection { LEFT, RIGHT, UP, DOWN };
@@ -17,7 +18,9 @@ private:
     
     int m_walking[2][3]; // 4x4 array for walking animations
 
-    int m_idle[2]; // array for idle left and right
+    int m_idle[2]; // array for idle left and right animations
+    int m_jump[2]; // array for jump left and right animations
+    int m_game_result[2]; // array for win / loss animations
 
     
     EntityType m_entity_type;
@@ -75,7 +78,13 @@ public:
     
     void const check_collision_y(Entity* collidable_entities, int collidable_entity_count);
     void const check_collision_x(Entity* collidable_entities, int collidable_entity_count);
-    void update(float delta_time, Entity *player, Entity *collidable_entities, int collidable_entity_count);
+
+    //OVERLOADED
+    void const check_collision_y(Map* map);
+    void const check_collision_x(Map* map);
+
+
+    void update(float delta_time, Entity *player, Entity *collidable_entities, int collidable_entity_count, Map *map);
     void render(ShaderProgram* program);
 
     void ai_activate(Entity *player);
@@ -89,14 +98,16 @@ public:
     void face_up() { m_animation_indices = m_walking[UP]; }
     void face_down() { m_animation_indices = m_walking[DOWN]; }
 
-    void move_left() { m_movement.x = -1.0f; face_left(); }
-    void move_right() { m_movement.x = 1.0f;  face_right(); }
+    void move_left() { m_movement.x = -1.0f; if (!m_collided_bottom) jump_left(); else  face_left(); }
+    void move_right() { m_movement.x = 1.0f; if (!m_collided_bottom) jump_right(); else face_right(); }
     void move_up() { m_movement.y = 1.0f;  face_up(); }
     void move_down() { m_movement.y = -1.0f; face_down(); }
 
     void idle_left() { m_animation_indices = m_idle; set_animation_index(0); }
     void idle_right() { m_animation_indices = m_idle; set_animation_index(1); }
   
+    void const jump_left() { /*m_is_jumping = true;*/ m_animation_indices = m_jump; set_animation_index(0);  }
+    void const jump_right() { /*m_is_jumping = true;*/ m_animation_indices = m_jump; set_animation_index(1); }
     void const jump() { m_is_jumping = true; }
 
     // ————— GETTERS ————— //
@@ -140,7 +151,7 @@ public:
     void const set_height(float new_height) {m_height = new_height; }
 
     // Setter for m_walking
-    void set_walking(int walking[2][4])
+    void set_walking(int walking[3][4])
     {
         for (int i = 0; i < 2; ++i)
         {
@@ -150,9 +161,19 @@ public:
             }
         }
     }
-    void set_idle(int walking[2][4]) {
+    void set_idle(int walking[3][4]) {
         m_idle[0] = walking[0][0];
         m_idle[1] = walking[1][0];
+    }
+
+    void set_jumping(int walking[3][4]) {
+        m_jump[0] = walking[2][1];
+        m_jump[1] = walking[2][0];
+    }
+
+    void set_game_result(int walking[3][4]) {
+        m_game_result[0] = walking[2][2];
+        m_game_result[1] = walking[2][3];
     }
 };
 

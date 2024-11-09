@@ -6,6 +6,10 @@
 #define FIXED_TIMESTEP 0.0166666f
 #define PLATFORM_COUNT 21
 
+// FOR MAP GENERATION
+#define LEVEL_WIDTH 14
+#define LEVEL_HEIGHT 11
+
 
 #ifdef _WINDOWS
 #include <GL/glew.h>
@@ -24,16 +28,19 @@
 #include <cstdlib>
 #include "Entity.h"
 
-
 #include <windows.h>
+
+#include "Map.h"
 
 // ––––– STRUCTS AND ENUMS ––––– //
 struct GameState
 {
     Entity* player;
-    Entity* platforms;
     Entity* goomba;
     Entity* shell;
+    Entity* koopa;
+
+    Map* map;
 };
 
 // ––––– CONSTANTS ––––– //
@@ -65,8 +72,8 @@ const int CD_QUAL_FREQ    = 44100,
           AUDIO_CHAN_AMT  = 2,     // stereo
           AUDIO_BUFF_SIZE = 4096;
 
-const char BGM_FILEPATH[] = "assets/crypto.mp3",
-           SFX_FILEPATH[] = "assets/bounce.wav";
+const char BGM_FILEPATH[] = "assets/goblins.mp3",
+           SFX_FILEPATH[] = "assets/jump.wav";
 
 const int PLAY_ONCE = 0,    // play once, loop never
           NEXT_CHNL = -1,   // next available channel
@@ -76,7 +83,7 @@ const int PLAY_ONCE = 0,    // play once, loop never
 Mix_Music *g_music;
 Mix_Chunk *g_jump_sfx;
 
-// ––––– GLOBAL VARIABLES ––––– //
+// ––––– GLOBAL VARIABLES ––––– //  
 GameState g_state;
 
 SDL_Window* g_display_window;
@@ -90,6 +97,22 @@ float g_accumulator = 0.0f;
 
 bool left_movement = false;
 bool right_movement = false;
+
+// DATA FOR MAP
+unsigned int LEVEL_DATA[] =
+{
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+    3, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3,
+    3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3,
+    3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3
+};
 
 // ––––– GENERAL FUNCTIONS ––––– //
 GLuint load_texture(const char* filepath)
@@ -169,46 +192,20 @@ void initialise()
     // ––––– SFX ––––– //
     g_jump_sfx = Mix_LoadWAV(SFX_FILEPATH);
     
-    // ––––– PLATFORMS ––––– //
-    GLuint platform_texture_id = load_texture(PLATFORM_FILEPATH);
-    
-    g_state.platforms = new Entity[PLATFORM_COUNT];
-    
-    for (int i = 0; i < PLATFORM_COUNT; i++)
-    {
-        if (i != 9 && i != 10 && i != 11 && i != 12 && i != 13) {
-            g_state.platforms[i].set_texture_id(platform_texture_id);
-            g_state.platforms[i].set_position(glm::vec3((i - PLATFORM_COUNT / 2.0) * 0.5, -3.5f, 0.0f));
-            g_state.platforms[i].set_width(0.5f);
-            g_state.platforms[i].set_height(0.5f);
-            g_state.platforms[i].set_entity_type(PLATFORM);
-            g_state.platforms[i].update(0.0f, NULL, NULL, 0);
-            g_state.platforms[i].set_width(g_state.platforms[i].get_width() * 0.5f);
-            g_state.platforms[i].set_height(g_state.platforms[i].get_height() * 0.5f);
-        }
-        else if (i == 10 || i == 11 || i == 12) {
-            g_state.platforms[i].set_texture_id(platform_texture_id);
-            g_state.platforms[i].set_position(glm::vec3((i - PLATFORM_COUNT / 2.0) * 0.5, -2.75f, 0.0f));
-            g_state.platforms[i].set_width(0.5f);
-            g_state.platforms[i].set_height(0.5f);
-            g_state.platforms[i].set_entity_type(PLATFORM);
-            g_state.platforms[i].update(0.0f, NULL, NULL, 0);
-            g_state.platforms[i].set_width(g_state.platforms[i].get_width() * 0.5f);
-            g_state.platforms[i].set_height(g_state.platforms[i].get_height() * 0.5f);
-        }
-
-    }
-
+    // ––––– MAP ––––– //
+    GLuint map_texture_id = load_texture("assets/new2_tileset.png");
+    g_state.map = new Map(LEVEL_WIDTH, LEVEL_HEIGHT, LEVEL_DATA, map_texture_id, 1.0f, 4, 1);
 
 
     // ––––– PLAYER (GEORGE) ––––– //
     // Existing
     GLuint player_texture_id = load_texture(SPRITESHEET_FILEPATH);
 
-    int player_walking_animation[2][4] =
+    int player_walking_animation[3][4] =
     {
         { 4, 5, 6, 7 },  // for George to move to the left,
         { 0, 1, 2, 3 }, // for George to move to the right,
+        { 8, 9, 10, 11}
         //{ 2, 6, 10, 14 }, // for George to move upwards,
         //{ 0, 4, 8, 12 }   // for George to move downwards
     };
@@ -232,7 +229,8 @@ void initialise()
     );
 
     // Jumping
-    g_state.player->set_jumping_power(7.5f);
+    g_state.player->set_jumping_power(10.0f);
+    g_state.player->set_position(glm::vec3(1.0f, -5.0f, 0.0f));
 
 
     // ----- ENEMIES ----- //
@@ -250,7 +248,7 @@ void initialise()
         IDLE                // initial AI state
     );
 
-    g_state.goomba->set_position(glm::vec3(4.51f, -2.0f, 0.0f));
+    g_state.goomba->set_position(glm::vec3(3.74f, -2.0f, 0.0f));
     g_state.goomba->set_acceleration(glm::vec3(0.0f, -5.0f, 0.0f));
 
 
@@ -267,10 +265,25 @@ void initialise()
         IDLE                // initial AI state
     );
 
-    g_state.shell->set_position(glm::vec3(-1.49f, -2.0f, 0.0f));
+    g_state.shell->set_position(glm::vec3(2.99f, -6.0f, 0.0f));
     g_state.shell->set_acceleration(glm::vec3(0.0f, -5.0f, 0.0f));
 
+    // KOOPA
+    GLuint koopa_texture_id = load_texture("assets/koopa.png");
 
+    g_state.koopa = new Entity(
+        koopa_texture_id,    // texture id
+        1.0f,               // speed
+        0.75f,              // width
+        0.75f,               // height
+        ENEMY,              // entity type
+        JUMPER,              // AI type
+        JUMPING               // initial AI state
+    );
+
+    g_state.koopa->set_position(glm::vec3(10.0f, -3.0f, 0.0f));
+    g_state.koopa->set_jumping_power(5.0f);
+    g_state.koopa->set_acceleration(glm::vec3(0.0f, -15.0f, 0.0f));
 
     
     // ––––– GENERAL ––––– //
@@ -281,6 +294,8 @@ void initialise()
 void process_input()
 {
     g_state.player->set_movement(glm::vec3(0.0f));
+
+    const Uint8* key_state = SDL_GetKeyboardState(NULL);
     
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -303,7 +318,9 @@ void process_input()
                         // Jump
                         if (g_state.player->get_collided_bottom())
                         {
+
                             g_state.player->jump();
+                            
                             Mix_PlayChannel(NEXT_CHNL, g_jump_sfx, 0);
                             
                             /**
@@ -331,8 +348,6 @@ void process_input()
         }
     }
     
-    const Uint8 *key_state = SDL_GetKeyboardState(NULL);
-
     if (key_state[SDL_SCANCODE_LEFT]) {
         g_state.player->move_left();
         right_movement = false;
@@ -375,11 +390,13 @@ void update()
 
     while (delta_time >= FIXED_TIMESTEP)
     {
-        g_state.player->update(FIXED_TIMESTEP, NULL, g_state.platforms, PLATFORM_COUNT);
+        g_state.player->update(FIXED_TIMESTEP, g_state.player, g_state.player, 0, g_state.map);
 
-        g_state.goomba->update(FIXED_TIMESTEP, g_state.player, g_state.platforms, PLATFORM_COUNT);
+        g_state.goomba->update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
 
-        g_state.shell->update(FIXED_TIMESTEP, g_state.player, g_state.platforms, PLATFORM_COUNT);
+        g_state.shell->update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
+
+        g_state.koopa->update(FIXED_TIMESTEP, g_state.player, g_state.player, 1, g_state.map);
 
         delta_time -= FIXED_TIMESTEP;
     }
@@ -388,6 +405,11 @@ void update()
     // CAMERA FOLLOWING PLAYER
     //g_view_matrix = glm::mat4(1.0f);
     //g_view_matrix = glm::translate(g_view_matrix, glm::vec3(-g_state.player->get_position().x, 0.0f, 0.0f));
+
+    g_view_matrix = glm::mat4(1.0f);
+
+    //// Camera Follows the player
+    g_view_matrix = glm::translate(g_view_matrix, glm::vec3(-g_state.player->get_position().x, -g_state.player->get_position().y, 0.0f));
     
     
     //if player colliding with platform to deact: platforms[platformtodeact].deactivate()
@@ -399,17 +421,23 @@ void update()
 void render()
 {
     glClear(GL_COLOR_BUFFER_BIT);
+
+    g_program.set_view_matrix(g_view_matrix);
     
     g_state.player->render(&g_program);
 
     g_state.goomba->render(&g_program);
 
     g_state.shell->render(&g_program);
+
+    g_state.koopa->render(&g_program);
+
+    g_state.map->render(&g_program);
     
-    for (int i = 0; i < PLATFORM_COUNT; i++) {
-        //if (g_state.platforms[i].get_entity_type() != DISAPPEARING)
-            g_state.platforms[i].render(&g_program);
-    }
+    //for (int i = 0; i < PLATFORM_COUNT; i++) {
+    //    //if (g_state.platforms[i].get_entity_type() != DISAPPEARING)
+    //        g_state.platforms[i].render(&g_program);
+    //}
 
     //for (int i = 0; i < g_state.enemy_count; i++) {
     //    g_state.enemies[i].render(&g_program);
@@ -422,7 +450,9 @@ void shutdown()
 {
     SDL_Quit();
     
-    delete [] g_state.platforms;
+    delete g_state.goomba;
+    delete g_state.shell;
+    delete g_state.koopa;
     delete g_state.player;
 }
 

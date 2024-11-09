@@ -15,9 +15,11 @@
 
 #include <windows.h>
 
+#include "Map.h"
+
 void Entity::ai_activate(Entity *player)
 {
-    OutputDebugString(L"MY AI TYPE IS: " + m_ai_type);
+    
     switch (m_ai_type)
     {
         case WALKER:
@@ -27,7 +29,11 @@ void Entity::ai_activate(Entity *player)
         case GUARD:
             ai_guard(player);
             break;
-            
+
+        case JUMPER:
+            ai_guard(player);
+            break;
+
         default:
             break;
     }
@@ -36,10 +42,10 @@ void Entity::ai_activate(Entity *player)
 void Entity::ai_walk()
 {
 
-    if (m_position.x < -3.5f) {
+    if (m_position.x < 3.0f) {
         m_movement = glm::vec3(1.0f, 0.0f, 0.0f);
     }
-    else if (m_position.x > -1.5f) {
+    else if (m_position.x > 7.0f) {
         m_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
     }
     
@@ -52,33 +58,36 @@ void Entity::ai_guard(Entity *player)
 
     switch (m_ai_state) {
         case IDLE:
-            if (glm::distance(m_position, player->get_position()) < 3.0f) m_ai_state = ATTACKING;
+            OutputDebugString(L"GOOMBA IDLE");
+            if (glm::distance(m_position.x, player->get_position().x) < 3.0f && fabs(m_position.y - player->get_position().y) < 0.75f) {
+                m_ai_state = ATTACKING;
+            }
+
             break;
             
-        //case WALKING:
-
-        //    break;
+        case JUMPING:
+            jump();
+            break;
 
         case ATTACKING:
-            // second condition to make sure goomba doesn't fall off map
-            if (fabs(m_position.y - player->get_position().y) < 0.75f) {
-                if (m_position.x > player->get_position().x && m_position.x > 1.8f) {
+            // conditional checking if enemy and player are same height
+            if (fabs(m_position.y - player->get_position().y) < 0.75f && fabs(m_position.x - player->get_position().x) < 3.0f) {
+                if ((m_position.x > player->get_position().x && m_position.x < 7.25f) || m_position.x > 7.25f) {
                     m_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
                 }
-                else {
-                    m_movement = glm::vec3(1.0f, 0.0f, 0.0f);
-                }
-                if (m_position.x < player->get_position().x && m_position.x < 4.75f) {
+                else if (m_position.x < player->get_position().x && m_position.x < 7.25f) {
                     m_movement = glm::vec3(1.0f, 0.0f, 0.0f);
                 }
             }
             else {
                 // still in attack mode, just walking while player not same height level
-                if (m_position.x < 2.0f) {
-                    m_movement = glm::vec3(1.0f, 0.0f, 0.0f);
+                if (m_position.x < 3.75f) {
+                    OutputDebugString(L"GOOMBA RIGHT");
+                    m_movement = glm::vec3(1.2f, 0.0f, 0.0f);
                 }
-                else if (m_position.x > 4.5f) {
-                    m_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
+                else if (m_position.x > 7.25f) {
+                    OutputDebugString(L"GOOMBA LEFT");
+                    m_movement = glm::vec3(-1.2f, 0.0f, 0.0f);
                 }
             }
             break;
@@ -102,10 +111,10 @@ Entity::Entity()
 }
 
 // Parameterized constructor
-Entity::Entity(GLuint texture_id, float speed, glm::vec3 acceleration, float jump_power, int walking[2][4], float animation_time,
+Entity::Entity(GLuint texture_id, float speed, glm::vec3 acceleration, float jump_power, int walking[3][4], float animation_time,
     int animation_frames, int animation_index, int animation_cols,
     int animation_rows, float width, float height, EntityType EntityType)
-    : m_position(-4.75f, 0.0f, 0.0f), m_movement(0.0f), m_scale(1.0f, 1.0f, 0.0f), m_model_matrix(1.0f),
+    : m_position(0.0f, 0.0f, 0.0f), m_movement(0.0f), m_scale(1.0f, 1.0f, 0.0f), m_model_matrix(1.0f),
     m_speed(speed),m_acceleration(acceleration), m_jumping_power(jump_power), m_animation_cols(animation_cols),
     m_animation_frames(animation_frames), m_animation_index(animation_index),
     m_animation_rows(animation_rows), m_animation_indices(nullptr),
@@ -115,6 +124,7 @@ Entity::Entity(GLuint texture_id, float speed, glm::vec3 acceleration, float jum
     face_right();
     set_walking(walking);
     set_idle(walking);
+    set_jumping(walking);
 
     OutputDebugString(L"PARAMETERIZED CONSTRUCTORRRRR\n");
 }
@@ -149,7 +159,7 @@ const char* entityTypeToString(EntityType type) {
 Entity::Entity(GLuint texture_id, float speed, float width, float height, EntityType EntityType, AIType AIType, AIState AIState): m_position(0.0f), m_movement(0.0f), m_scale(1.0f, 1.0f, 0.0f), m_model_matrix(1.0f),
 m_speed(speed), m_animation_cols(0), m_animation_frames(0), m_animation_index(0),
 m_animation_rows(0), m_animation_indices(nullptr), m_animation_time(0.0f),
-m_texture_id(texture_id), m_velocity(0.0f), m_acceleration(0.0f), m_width(width), m_height(height),m_entity_type(EntityType), m_ai_type(AIType), m_ai_state(AIState), m_idle(), m_is_jumping(false), m_jumping_power(3.0f)
+m_texture_id(texture_id), m_velocity(0.0f), m_acceleration(0.0f), m_width(width), m_height(height),m_entity_type(EntityType), m_ai_type(AIType), m_ai_state(AIState), m_idle(), m_is_jumping(false), m_jumping_power(5.0f)
 {
 // Initialize m_walking with zeros or any default value
 //for (int i = 0; i < SECONDS_PER_FRAME; ++i)
@@ -311,7 +321,96 @@ void const Entity::check_collision_x(Entity *collidable_entities, int collidable
         }
     }
 }
-void Entity::update(float delta_time, Entity *player, Entity *collidable_entities, int collidable_entity_count)
+
+
+
+// ---------- OVERLOADING COLLISION FUNCTIONS ------------- //
+void const Entity::check_collision_y(Map* map)
+{
+    // Probes for tiles above
+    glm::vec3 top = glm::vec3(m_position.x, m_position.y + (m_height / 2), m_position.z);
+    glm::vec3 top_left = glm::vec3(m_position.x - (m_width / 2), m_position.y + (m_height / 2), m_position.z);
+    glm::vec3 top_right = glm::vec3(m_position.x + (m_width / 2), m_position.y + (m_height / 2), m_position.z);
+
+    // Probes for tiles below
+    glm::vec3 bottom = glm::vec3(m_position.x, m_position.y - (m_height / 2), m_position.z);
+    glm::vec3 bottom_left = glm::vec3(m_position.x - (m_width / 2), m_position.y - (m_height / 2), m_position.z);
+    glm::vec3 bottom_right = glm::vec3(m_position.x + (m_width / 2), m_position.y - (m_height / 2), m_position.z);
+
+    float penetration_x = 0;
+    float penetration_y = 0;
+
+    // If the map is solid, check the top three points
+    if (map->is_solid(top, &penetration_x, &penetration_y) && m_velocity.y > 0)
+    {
+        m_position.y -= penetration_y;
+        m_velocity.y = 0;
+        m_collided_top = true;
+    }
+    else if (map->is_solid(top_left, &penetration_x, &penetration_y) && m_velocity.y > 0)
+    {
+        m_position.y -= penetration_y;
+        m_velocity.y = 0;
+        m_collided_top = true;
+    }
+    else if (map->is_solid(top_right, &penetration_x, &penetration_y) && m_velocity.y > 0)
+    {
+        m_position.y -= penetration_y;
+        m_velocity.y = 0;
+        m_collided_top = true;
+    }
+
+    // And the bottom three points
+    if (map->is_solid(bottom, &penetration_x, &penetration_y) && m_velocity.y < 0)
+    {
+        m_position.y += penetration_y;
+        m_velocity.y = 0;
+        m_collided_bottom = true;
+    }
+    else if (map->is_solid(bottom_left, &penetration_x, &penetration_y) && m_velocity.y < 0)
+    {
+        m_position.y += penetration_y;
+        m_velocity.y = 0;
+        m_collided_bottom = true;
+    }
+    else if (map->is_solid(bottom_right, &penetration_x, &penetration_y) && m_velocity.y < 0)
+    {
+        m_position.y += penetration_y;
+        m_velocity.y = 0;
+        m_collided_bottom = true;
+
+    }
+}
+
+void const Entity::check_collision_x(Map* map)
+{
+    // Probes for tiles; the x-checking is much simpler
+    glm::vec3 left = glm::vec3(m_position.x - (m_width / 2), m_position.y, m_position.z);
+    glm::vec3 right = glm::vec3(m_position.x + (m_width / 2), m_position.y, m_position.z);
+
+    float penetration_x = 0;
+    float penetration_y = 0;
+
+    if (map->is_solid(left, &penetration_x, &penetration_y) && m_velocity.x < 0)
+    {
+        m_position.x += penetration_x;
+        m_velocity.x = 0;
+        m_collided_left = true;
+    }
+    if (map->is_solid(right, &penetration_x, &penetration_y) && m_velocity.x > 0)
+    {
+        m_position.x -= penetration_x;
+        m_velocity.x = 0;
+        m_collided_right = true;
+    }
+}
+
+
+
+
+
+
+void Entity::update(float delta_time, Entity *player, Entity *collidable_entities, int collidable_entity_count , Map *map)
 {
     //OutputDebugString(L"Updating entity\n");
 
@@ -323,22 +422,20 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
     m_collided_right  = false;
     
     if (m_entity_type == ENEMY) {
-        OutputDebugString(L"AI ACTIVATINGGGGGGGGGG");
         ai_activate(player);
     }
 
-    if (m_entity_type == PLAYER) {
-        // Update playerOne position
-        if (m_position.x < -4.8f)
-        {
-            m_position.x = -4.8f;
-        }
-        else if (m_position.x > 4.8f)
-        {
-            m_position.x = 4.8f;
-        }
-    }
-   
+    //if (m_entity_type == PLAYER) {
+    //    // Update playerOne position
+    //    if (m_position.x < -4.8f)
+    //    {
+    //        m_position.x = -4.8f;
+    //    }
+    //    else if (m_position.x > 4.8f)
+    //    {
+    //        m_position.x = 4.8f;
+    //    }
+    //}
 
     if (m_animation_indices != NULL)
     {
@@ -366,11 +463,13 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
     
     m_position.y += m_velocity.y * delta_time;
     check_collision_y(collidable_entities, collidable_entity_count);
+    check_collision_y(map);
     
     m_position.x += m_velocity.x * delta_time;
     check_collision_x(collidable_entities, collidable_entity_count);
+    check_collision_x(map);
     
-    if (m_is_jumping)
+    if (m_is_jumping && m_collided_bottom)
     {
         m_is_jumping = false;
         m_velocity.y += m_jumping_power;
@@ -389,7 +488,9 @@ void Entity::render(ShaderProgram* program)
     if (!m_is_active) {
         return;
     }
+  
     program->set_model_matrix(m_model_matrix);
+
 
     if (m_animation_indices != NULL)
     {
