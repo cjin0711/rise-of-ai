@@ -12,6 +12,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "ShaderProgram.h"
 #include "Entity.h"
+#include <string>
 
 #include <windows.h>
 
@@ -58,7 +59,7 @@ void Entity::ai_guard(Entity *player)
 
     switch (m_ai_state) {
         case IDLE:
-            OutputDebugString(L"GOOMBA IDLE");
+          
             if (glm::distance(m_position.x, player->get_position().x) < 3.0f && fabs(m_position.y - player->get_position().y) < 0.75f) {
                 m_ai_state = ATTACKING;
             }
@@ -82,11 +83,11 @@ void Entity::ai_guard(Entity *player)
             else {
                 // still in attack mode, just walking while player not same height level
                 if (m_position.x < 3.75f) {
-                    OutputDebugString(L"GOOMBA RIGHT");
+                   
                     m_movement = glm::vec3(1.2f, 0.0f, 0.0f);
                 }
                 else if (m_position.x > 7.25f) {
-                    OutputDebugString(L"GOOMBA LEFT");
+                   
                     m_movement = glm::vec3(-1.2f, 0.0f, 0.0f);
                 }
             }
@@ -119,7 +120,7 @@ Entity::Entity(GLuint texture_id, float speed, glm::vec3 acceleration, float jum
     m_animation_frames(animation_frames), m_animation_index(animation_index),
     m_animation_rows(animation_rows), m_animation_indices(nullptr),
     m_animation_time(animation_time), m_texture_id(texture_id), m_velocity(0.0f),
-    m_width(width), m_height(height), m_entity_type(EntityType)
+    m_width(width), m_height(height), m_entity_type(EntityType), kill_count(0.0f)
 {
     face_right();
     set_walking(walking);
@@ -243,10 +244,13 @@ void Entity::draw_sprite_from_texture_atlas(ShaderProgram* program, GLuint textu
 
 bool const Entity::check_collision(Entity* other) const
 {
-    float x_distance = fabs(m_position.x - other->m_position.x) - ((m_width + other->m_width) / 2.0f);
-    float y_distance = fabs(m_position.y - other->m_position.y) - ((m_height + other->m_height) / 2.0f);
+    if (other->get_is_active()) {
+        float x_distance = fabs(m_position.x - other->m_position.x) - ((m_width + other->m_width) / 2.0f);
+        float y_distance = fabs(m_position.y - other->m_position.y) - ((m_height + other->m_height) / 2.0f);
 
-    return x_distance < 0.0f && y_distance < 0.0f;
+        return x_distance < 0.0f && y_distance < 0.0f;
+    }
+    return false;
 }
 
 void const Entity::check_collision_y(Entity *collidable_entities, int collidable_entity_count)
@@ -259,9 +263,10 @@ void const Entity::check_collision_y(Entity *collidable_entities, int collidable
         if (check_collision(collidable_entity))
         {
 /*----------------- IF THE PLAYER HITS A DISAPPEARING BLOCK, DEACTIVATE IT ----------*/
-            //if (m_entity_type == PLAYER && collidable_entity->get_entity_type() == DISAPPEARING) {
-            //    collidable_entity->deactivate();
-            //}
+            if (m_entity_type == PLAYER) {
+                collidable_entity->deactivate();
+                set_kill_count(get_kill_count() + 1);
+            }
     /*-----------DON'T DO COLLISIONS IF THE BLOCK ISN'T ACTIVE-----------*/
             if (!collidable_entity->m_is_active) {
                 break;
@@ -317,6 +322,9 @@ void const Entity::check_collision_x(Entity *collidable_entities, int collidable
  
                 // Collision!
                 m_collided_left  = true;
+            }
+            if (m_collided_right || m_collided_left) {
+                set_touched();
             }
         }
     }

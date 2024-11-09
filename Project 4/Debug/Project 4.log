@@ -1,6 +1,7 @@
 ﻿  main.cpp
-C:\Users\cjin0\source\repos\Project 4\main.cpp(47,30): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
 C:\Users\cjin0\source\repos\Project 4\main.cpp(48,30): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\cjin0\source\repos\Project 4\main.cpp(148,15): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-C:\Users\cjin0\source\repos\Project 4\main.cpp(190,36): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\cjin0\source\repos\Project 4\main.cpp(49,21): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\cjin0\source\repos\Project 4\main.cpp(171,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\cjin0\source\repos\Project 4\main.cpp(224,15): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\cjin0\source\repos\Project 4\main.cpp(266,36): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
   Project 4.vcxproj -> C:\Users\cjin0\source\repos\Project 4\Debug\Project 4.exe

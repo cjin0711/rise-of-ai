@@ -15,14 +15,11 @@ class Entity
 {
 private:
     bool m_is_active = true;
-    
-    int m_walking[2][3]; // 4x4 array for walking animations
 
-    int m_idle[2]; // array for idle left and right animations
-    int m_jump[2]; // array for jump left and right animations
-    int m_game_result[2]; // array for win / loss animations
+    bool m_touched_enemy = false;
 
-    
+    int kill_count = 0;
+  
     EntityType m_entity_type;
     AIType     m_ai_type;
     AIState    m_ai_state;
@@ -40,6 +37,7 @@ private:
     
     bool m_is_jumping;
 
+
     // ————— TEXTURES ————— //
     GLuint    m_texture_id;
 
@@ -54,6 +52,12 @@ private:
 
     float m_width = 1.0f,
           m_height = 1.0f;
+
+    int m_walking[2][3]; // 4x4 array for walking animations
+    int m_idle[2]; // array for idle left and right animations
+    int m_jump[2]; // array for jump left and right animations
+    int m_game_result[2]; // array for win / loss animations
+
     // ————— COLLISIONS ————— //
     bool m_collided_top    = false;
     bool m_collided_bottom = false;
@@ -125,8 +129,13 @@ public:
     bool      const get_collided_bottom() const { return m_collided_bottom; }
     bool      const get_collided_right() const { return m_collided_right; }
     bool      const get_collided_left() const { return m_collided_left; }
+    bool      const get_is_active() const { return m_is_active; }
+
     float get_width() const { return m_width; }
     float get_height() const { return m_height; }
+
+    int       const get_kill_count() const { return kill_count; }
+    bool      const get_touched() const { return m_touched_enemy; }
     
     void activate()   { m_is_active = true;  };
     void deactivate() { m_is_active = false; };
@@ -149,6 +158,9 @@ public:
     void const set_jumping_power(float new_jumping_power) { m_jumping_power = new_jumping_power;}
     void const set_width(float new_width) {m_width = new_width; }
     void const set_height(float new_height) {m_height = new_height; }
+
+    void const set_kill_count(int new_kill_count) { kill_count = new_kill_count; }
+    void const set_touched() { m_touched_enemy = true; }
 
     // Setter for m_walking
     void set_walking(int walking[3][4])
